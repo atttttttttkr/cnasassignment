@@ -1,0 +1,163 @@
+# --- Secret: MySQL credentials shared with PHP ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+stringData:
+  DB_HOST: "mysql"
+  DB_USER: "crud_user"
+  DB_PASSWORD: "crud_pass"
+  DB_NAME: "mydb"
+  DB_PORT: "3306"
+
+---
+
+# --- MySQL Deployment (with safe initContainer cleanup) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      initContainers:
+      - name: mysql-cleanup
+        image: busybox:1.35
+        command:
+          - sh
+          - -c
+          - |
+            if [ -d /var/lib/mysql ]; then
+              if [ -f /var/lib/mysql/auto.cnf ] || [ -f /var/lib/mysql/mysql.ibd ]; then
+                echo "MySQL data dir looks valid. Skipping cleanup."
+              else
+                echo "MySQL data dir is invalid. Cleaning up..."
+                rm -rf /var/lib/mysql/*
+              fi
+            fi
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+
+      containers:
+      - name: mysql
+        image: jjjxxx201/mysqldatabase:latest
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_PASSWORD
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_NAME
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_PASSWORD
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: mysql
+
+
+---
+
+# --- MySQL Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+
+---
+
+# --- PHP App Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: php-app
+  template:
+    metadata:
+      labels:
+        app: php-app
+    spec:
+      containers:
+      - name: php-app
+        image: jjjxxx201/php-app:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_HOST
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_PASSWORD
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_NAME
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_PORT
+
+---
+
+# --- PHP Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-app
+spec:
+  selector:
+    app: php-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
