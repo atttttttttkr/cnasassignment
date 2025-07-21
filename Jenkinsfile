@@ -31,26 +31,26 @@ pipeline {
             }
         }
 
-    stage('Scan with Trivy') {
-        steps {
-            script {
-                def services = ['php-app', 'mysql']
-                for (svc in services) {
-                    def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
-                    echo "🔍 Scanning ${tag} using Trivy Docker"
-                    sh """
-                        docker run --rm \
-                          -v /var/run/docker.sock:/var/run/docker.sock \
-                          aquasec/trivy image \
-                          --severity ${TRIVY_SEVERITY} \
-                          --exit-code 1 \
-                          --no-progress \
-                          ${tag}
-                    """
+        stage('Scan with Trivy') {
+            steps {
+                script {
+                    def services = ['php-app', 'mysql']
+                    for (svc in services) {
+                        def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
+                        echo "🔍 Scanning ${tag} using Trivy Docker"
+                        sh """
+                            docker run --rm \
+                              -v /var/run/docker.sock:/var/run/docker.sock \
+                              aquasec/trivy image \
+                              --severity ${TRIVY_SEVERITY} \
+                              --exit-code 1 \
+                              --no-progress \
+                              ${tag}
+                        """
+                    }
                 }
             }
         }
-    }
 
         stage('Push to Docker Hub (optional)') {
             when {
@@ -70,24 +70,26 @@ pipeline {
             }
         }
 
-    stage('Merge to main') {
-        when {
-            branch 'test'
-        }
-        steps {
-            script {
-                echo "🛠️ Merging test -> main using GitHub credentials"
-                withCredentials([usernamePassword(credentialsId: 'githubcred', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
-                    sh '''
-                        git config user.email "atttttttttkr@gmail.com"
-                        git config user.name "atttttttttkr"
-                        git merge test -m "Auto-merge from test after passing CI"
-                        git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git main
-                    '''
+        stage('Merge to main') {
+            when {
+                branch 'test'
+            }
+            steps {
+                script {
+                    echo "🛠️ Merging test -> main using GitHub credentials"
+                    withCredentials([usernamePassword(credentialsId: 'githubcred', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
+                        sh '''
+                            git config user.email "atttttttttkr@gmail.com"
+                            git config user.name "atttttttttkr"
+                            git checkout main || git checkout -b main
+                            git merge test -m "Auto-merge from test after passing CI"
+                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git main
+                        '''
+                    }
                 }
             }
         }
-    }
+    } // <--- CLOSES "stages"
 
     post {
         failure {
@@ -97,4 +99,4 @@ pipeline {
             echo "✅ All stages passed. Job done."
         }
     }
-}
+} // <--- CLOSES "pipeline"
