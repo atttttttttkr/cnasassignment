@@ -34,7 +34,7 @@ pipeline {
         stage('Scan with Trivy') {
             steps {
                 script {
-                    def services = ['php-app', 'mysql']
+                    def services = ['php-app', 'mysqldatabase']
                     for (svc in services) {
                         def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
                         echo "🔍 Scanning ${tag} using Trivy Docker"
