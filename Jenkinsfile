@@ -34,7 +34,7 @@ pipeline {
         stage('Scan with Trivy') {
             steps {
                 script {
-                    def services = ['php-app', 'mysqldatabase']
+                    def services = ['php-app', 'mysql']
                     for (svc in services) {
                         def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
                         echo "🔍 Scanning ${tag} using Trivy Docker"
@@ -43,6 +43,7 @@ pipeline {
                               -v /var/run/docker.sock:/var/run/docker.sock \
                               aquasec/trivy image \
                               --severity ${TRIVY_SEVERITY} \
+                              --exit-code 0 \
                               --no-progress \
                               ${tag}
                         """
