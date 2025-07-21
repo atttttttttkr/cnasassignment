@@ -21,7 +21,7 @@ pipeline {
         stage('Build Docker Images') {
             steps {
                 script {
-                    def services = ['php-app', 'mysql']
+                    def services = ['php-app', 'mysqldatabase']
                     for (svc in services) {
                         def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
                         echo "🔨 Building ${tag}"
@@ -34,7 +34,7 @@ pipeline {
         stage('Scan with Trivy') {
             steps {
                 script {
-                    def services = ['php-app', 'mysql']
+                    def services = ['php-app', 'mysqldatabase']
                     for (svc in services) {
                         def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
                         echo "🔍 Scanning ${tag} using Trivy Docker"
@@ -60,7 +60,7 @@ pipeline {
                 script {
                     withCredentials([usernamePassword(credentialsId: 'dockerhub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        def services = ['php-app', 'mysql']
+                        def services = ['php-app', 'mysqldatabase']
                         for (svc in services) {
                             def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
                             sh "docker push ${tag}"
