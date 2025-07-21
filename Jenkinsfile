@@ -54,7 +54,7 @@ pipeline {
 
         stage('Push to Docker Hub (optional)') {
             when {
-                expression { return false } // set to true to enable pushing
+                expression { return true } // set to true to enable pushing
             }
             steps {
                 script {
@@ -72,7 +72,7 @@ pipeline {
 
         stage('Merge to main') {
             when {
-                branch 'test'
+                branch 'test2'
             }
             steps {
                 script {
