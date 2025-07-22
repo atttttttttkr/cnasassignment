@@ -127,12 +127,12 @@ pipeline {
                         sh '''
                             git config user.email "atttttttttkr@gmail.com"
                             git config user.name "atttttttttkr"
-                            git init
-                            git add .
-                            git commit -m "Passed Jenkins Test"
-                            git remote add origin https://github.com/atttttttttkr/cnasassignment.git
-                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git master --force
-
+                    
+                            # Ensure we're on test2 branch
+                            git checkout test2
+                    
+                            # Push test2 branch to master (force overwrite)
+                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git test2:master --force
                         '''
                     }
                 }
