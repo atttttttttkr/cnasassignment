@@ -128,9 +128,9 @@ pipeline {
                         sh '''
                             git config user.email "atttttttttkr@gmail.com"
                             git config user.name "atttttttttkr"
-                            git checkout main || git checkout -b main
+                            git checkout master || git checkout -b master
                             git merge test2 -m "Auto-merge from test2 after passing CI"
-                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git main
+                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git master
                         '''
                     }
                 }
