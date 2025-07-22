@@ -116,27 +116,35 @@ pipeline {
                 }
             }
         }
-
-        stage('Merge to main') {
+        stage('Deploy to master') {
             when {
                 branch 'test2'
             }
             steps {
                 script {
-                    echo "🛠️ Merging test2 -> main using GitHub credentials"
+                    echo "🚀 Deploying to master (without Jenkinsfile)"
                     withCredentials([usernamePassword(credentialsId: 'githubcred', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                         sh '''
                             git config user.email "atttttttttkr@gmail.com"
                             git config user.name "atttttttttkr"
-                            git checkout master || git checkout -b master
-                            git merge test2 -m "Auto-merge from test2 after passing CI"
-                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git master
+                            
+                            # Create a temporary deployment branch without Jenkinsfile
+                            git checkout -b deployment
+                            rm -f Jenkinsfile
+                            git add -A
+                            git commit -m "Remove Jenkinsfile for production"
+                            
+                            # Force push to master (overwrites completely)
+                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git deployment:master --force
+                            
+                            # Clean up
+                            git checkout test2
+                            git branch -D deployment
                         '''
                     }
                 }
             }
         }
-    }
 
     post {
         failure {
