@@ -127,19 +127,12 @@ pipeline {
                         sh '''
                             git config user.email "atttttttttkr@gmail.com"
                             git config user.name "atttttttttkr"
-                            
-                            # Create a temporary deployment branch without Jenkinsfile
-                            git checkout -b deployment
-                            rm -f Jenkinsfile
-                            git add -A
-                            git commit -m "Remove Jenkinsfile for production"
-                            
-                            # Force push to master (overwrites completely)
-                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git deployment:master --force
-                            
-                            # Clean up
-                            git checkout test2
-                            git branch -D deployment
+                            git init
+                            git add .
+                            git commit -m "Passed Jenkins Test"
+                            git remote add origin https://github.com/atttttttttkr/cnasassignment.git
+                            git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git master --force
+
                         '''
                     }
                 }
