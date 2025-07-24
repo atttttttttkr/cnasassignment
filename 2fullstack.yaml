@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace: php-app
+type: Opaque
+stringData:
+  DB_HOST: "mysql"
+  DB_USER: "user"
+  DB_PASSWORD: "userpass"
+  DB_NAME: "mydb"
+  DB_PORT: "3306"
+
+---
+
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+  namespace:  mysql-db
+type: Opaque
+stringData:
+  DB_HOST: "mysql"
+  DB_USER: "user"
+  DB_PASSWORD: "userpass"
+  DB_NAME: "mydb"
+  DB_PORT: "3306"
+
+
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  namespace: mysql-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      containers:
+      - name: mysql
+        image: jjjxxx201/mysqldatabase:latest
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_PASSWORD
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_NAME
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_USER
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_PASSWORD
+        ports:
+        - containerPort: 3306
+        volumeMounts:
+        - name: mysql-storage
+          mountPath: /var/lib/mysql
+
+      volumes:
+      - name: mysql-storage
+        persistentVolumeClaim:
+          claimName: mysql
+
+
+---
+
+# --- MySQL Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+  namespace: mysql-db
+spec:
+  selector:
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+
+---
+
+# --- PHP App Deployment ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-app
+  namespace: php-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: php-app
+  template:
+    metadata:
+      labels:
+        app: php-app
+    spec:
+      containers:
+      - name: php-app
+        image: jjjxxx201/php-app:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: DB_HOST
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_HOST
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_PASSWORD
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_NAME
+        - name: DB_PORT
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: DB_PORT
+
+---
+
+# --- PHP Service ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-app
+  namespace: php-app
+spec:
+  selector:
+    app: php-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
