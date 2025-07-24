@@ -5,9 +5,9 @@ metadata:
   namespace: php-app
 type: Opaque
 stringData:
-  DB_HOST: "mysql"
+  DB_HOST: "mysql.mysql-db.svc.cluster.local"
   DB_USER: "user"
-  DB_PASSWORD: "userpass"
+  DB_PASSWORD: "pass"
   DB_NAME: "mydb"
   DB_PORT: "3306"
 
@@ -23,7 +23,7 @@ type: Opaque
 stringData:
   DB_HOST: "mysql"
   DB_USER: "user"
-  DB_PASSWORD: "userpass"
+  DB_PASSWORD: "pass"
   DB_NAME: "mydb"
   DB_PORT: "3306"
 
