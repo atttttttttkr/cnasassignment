@@ -10,10 +10,11 @@ pipeline {
     stages {
         stage('Check Branch') {
             when {
-                expression { env.BRANCH_NAME == 'test2' }
+                expression { env.BRANCH_NAME == 'test2' }  
+                // #else then dont run better put in private repository actuallly
             }
             steps {
-                echo "✅ Running on 'test2' branch"
+                echo "Running on 'test' branch"
             }
         }
 
@@ -141,10 +142,10 @@ pipeline {
     }
     post {
         failure {
-            echo "❌ Pipeline failed. No merge."
+            echo "Pipeline failed."
         }
         success {
-            echo "✅ All stages passed. Job done."
+            echo "All stages passed. Job done."
         }
         always {
             cleanWs()
