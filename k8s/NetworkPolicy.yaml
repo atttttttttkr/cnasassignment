@@ -6,7 +6,7 @@ metadata:
 spec:
   podSelector:
     matchLabels:
-      app: mysql-db
+      app: mysql
   ingress:
     - from:
         - namespaceSelector:
