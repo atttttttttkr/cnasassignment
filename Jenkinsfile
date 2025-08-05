@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB_USER = 'jjjxxx201'
-        IMAGE_TAG = 'test'
+        IMAGE_TAG = 'test1'
         SERVICE = 'php-app'
         FULL_IMAGE = "${DOCKERHUB_USER}/${SERVICE}:${IMAGE_TAG}"
     }
