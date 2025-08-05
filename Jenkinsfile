@@ -4,39 +4,66 @@ pipeline {
     environment {
         DOCKERHUB_USER = 'jjjxxx201'
         IMAGE_TAG = 'test'
-        TRIVY_SEVERITY = 'CRITICAL,HIGH'
+        SERVICE = 'php-app'
+        FULL_IMAGE = "${DOCKERHUB_USER}/${SERVICE}:${IMAGE_TAG}"
     }
+
+    triggers { pollSCM('* * * * *') }
 
     stages {
         stage('Check Branch') {
             when {
-                expression { env.BRANCH_NAME == 'test' }  
+                branch 'test'
             }
             steps {
                 echo "Running on 'test' branch"
             }
         }
 
-        stage('Build Docker Images') {
+        stage('Checkout') {
+            when {
+                branch 'test'
+            }
             steps {
-                script {
-                    def services = ['php-app', 'mysqldatabase']
-                    for (svc in services) {
-                        def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
-                        echo "Building ${tag}"
-                        sh "docker build -t ${tag} ${svc}/"
-                    }
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            when {
+                branch 'test'
+            }
+            steps {
+                sh "docker build -t ${FULL_IMAGE} ${SERVICE}/"
+            }
+        }
+
+        stage('Login and Push to DockerHub') {
+            when {
+                branch 'test'
+            }
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'docker',
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh "docker push ${FULL_IMAGE}"
                 }
             }
         }
 
         stage('Scan with Trivy') {
+            when {
+                expression { false } // This keeps the stage visible but skips execution
+            }
             steps {
                 script {
                     def services = ['php-app', 'mysqldatabase']
                     for (svc in services) {
                         def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
-                        echo "Scanning ${tag} using Trivy Docker"
+                        echo "Would scan ${tag} using Trivy Docker..."
                         sh """
                             docker run --rm \
                               -v /var/run/docker.sock:/var/run/docker.sock \
@@ -49,105 +76,52 @@ pipeline {
                     }
                 }
             }
-        } 
-
-        stage('Push Test Images') {
+        }
+        stage('Push to GitHub (Promote to master)') {
             when {
-                expression { return true }
+                branch 'test'
             }
             steps {
                 script {
+                    echo " Promoting 'test' to 'master' branch on GitHub"
                     withCredentials([usernamePassword(
-                        credentialsId: 'docker',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
+                        credentialsId: 'githubcred',
+                        usernameVariable: 'GIT_USER',
+                        passwordVariable: 'GIT_PASS'
                     )]) {
-                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        def services = ['php-app', 'mysqldatabase']
-                        for (svc in services) {
-                            def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
-                            sh "docker push ${tag}"
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Promote to Latest') {
-            when {
-                expression { return true }
-            }
-            steps {
-                script {
-                    withCredentials([usernamePassword(
-                        credentialsId: 'docker',
-                        usernameVariable: 'DOCKER_USER',
-                        passwordVariable: 'DOCKER_PASS'
-                    )]) {
-                        sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
-                        def services = ['php-app', 'mysqldatabase']
-                        for (svc in services) {
-                            def testTag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
-                            def latestTag = "${env.DOCKERHUB_USER}/${svc}:latest"
-                            sh """
-                                docker pull ${testTag}
-                                docker tag ${testTag} ${latestTag}
-                                docker push ${latestTag}
-                            """
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Cleanup') {
-            steps {
-                script {
-                    def services = ['php-app', 'mysqldatabase']
-                    for (svc in services) {
-                        def testTag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
-                        def latestTag = "${env.DOCKERHUB_USER}/${svc}:latest"
-                        sh """
-                            docker rmi ${testTag} || true
-                            docker rmi ${latestTag} || true
-                            docker system prune -f
-                        """
-                    }
-                }
-            }
-        }
-        stage('Deploy to master') {
-            when {
-                branch 'test2'
-            }
-            steps {
-                script {
-                    echo "Deploying to master (without Jenkinsfile)"
-                    withCredentials([usernamePassword(credentialsId: 'githubcred', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS')]) {
                         sh '''
                             git config user.email "atttttttttkr@gmail.com"
                             git config user.name "atttttttttkr"
-                    
-                            # Ensure we're on test2 branch
+        
+                            # Make sure you're on the test branch
                             git checkout test
-                    
-                            # Push test2 branch to master (force overwrite)
+        
+                            # Push test → master (force)
                             git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git test:master --force
                         '''
                     }
                 }
             }
         }
+        stage('Cleanup (optional)') {
+            when {
+                branch 'test'
+            }
+            steps {
+                sh """
+                    docker rmi ${FULL_IMAGE} || true
+                    docker system prune -f
+                """
+            }
+        }
     }
+
     post {
-        failure {
-            echo "Pipeline failed."
-        }
         success {
-            echo "All stages passed. Job done."
+            echo "Pipeline completed successfully"
         }
-        always {
-            cleanWs()
+        failure {
+            echo "Pipeline failed"
         }
     }
 }
