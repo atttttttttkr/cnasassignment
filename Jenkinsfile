@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('Check Branch') {
             when {
-                expression { env.BRANCH_NAME == 'test2' }
+                expression { env.BRANCH_NAME == 'test' }
             }
             steps {
                 echo "✅ Running on 'test2' branch"
