@@ -1,0 +1,48 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: php-app-route
+  namespace: php-app
+spec:
+  entryPoints:
+    - web
+    - websecure
+  routes:
+    - match: Host(`assignmentcnas.com`) && Path(`/create.php`)
+      kind: Rule
+      middlewares:
+        - name: ratelimit-create
+          namespace: php-app
+      services:
+        - name: php-app
+          namespace: php-app
+          port: 80
+    - match: Host(`assignmentcnas.com`) && Path(`/update.php`)
+      kind: Rule
+      middlewares:
+        - name: ratelimit-update
+          namespace: php-app
+      services:
+        - name: php-app
+          namespace: php-app
+          port: 80
+    - match: Host(`assignmentcnas.com`) && Path(`/delete.php`)
+      kind: Rule
+      middlewares:
+        - name: ratelimit-delete
+          namespace: php-app
+      services:
+        - name: php-app
+          namespace: php-app
+          port: 80
+    - match: Host(`assignmentcnas.com`) && Path(`/index.php`)
+      kind: Rule
+      middlewares:
+        - name: ratelimit-index
+          namespace: php-app
+      services:
+        - name: php-app
+          namespace: php-app
+          port: 80
+  tls:
+    secretName: letsencrypt-staging

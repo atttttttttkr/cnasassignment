@@ -1,0 +1,40 @@
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ratelimit-index
+  namespace: php-app
+spec:
+  rateLimit:
+    average: 10
+    burst: 20
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ratelimit-create
+  namespace: php-app
+spec:
+  rateLimit:
+    average: 2
+    burst: 4
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ratelimit-update
+  namespace: php-app
+spec:
+  rateLimit:
+    average: 3
+    burst: 6
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: ratelimit-delete
+  namespace: php-app
+spec:
+  rateLimit:
+    average: 1
+    burst: 2
+
