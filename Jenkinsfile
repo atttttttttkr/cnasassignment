@@ -3,45 +3,30 @@ pipeline {
 
     environment {
         DOCKERHUB_USER = 'jjjxxx201'
-        IMAGE_TAG = 'test1'
+        IMAGE_TAG = 'test1' // update this when you scan to create new version for kubernetes image pulls
         SERVICE = 'php-app'
         FULL_IMAGE = "${DOCKERHUB_USER}/${SERVICE}:${IMAGE_TAG}"
+        RUN_TRIVY = 'false' // set to 'true' to enable scanning
     }
-
-    triggers { pollSCM('* * * * *') }
 
     stages {
         stage('Check Branch') {
-            when {
-                branch 'test'
-            }
-            steps {
-                echo "Running on 'test' branch"
-            }
+            when { branch 'test' }
+            steps { echo "Running on 'test' branch" }
         }
 
         stage('Checkout') {
-            when {
-                branch 'test'
-            }
-            steps {
-                checkout scm
-            }
+            when { branch 'test' }
+            steps { checkout scm }
         }
 
         stage('Build Docker Image') {
-            when {
-                branch 'test'
-            }
-            steps {
-                sh "docker build -t ${FULL_IMAGE} ${SERVICE}/"
-            }
+            when { branch 'test' }
+            steps { sh "docker build -t ${FULL_IMAGE} ${SERVICE}/" }
         }
 
         stage('Login and Push to DockerHub') {
-            when {
-                branch 'test'
-            }
+            when { branch 'test' }
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'docker',
@@ -56,19 +41,22 @@ pipeline {
 
         stage('Scan with Trivy') {
             when {
-                expression { false } // This keeps the stage visible but skips execution
+                allOf {
+                    branch 'test'
+                    expression { env.RUN_TRIVY.toBoolean() }
+                }
             }
             steps {
                 script {
                     def services = ['php-app', 'mysqldatabase']
                     for (svc in services) {
                         def tag = "${env.DOCKERHUB_USER}/${svc}:${env.IMAGE_TAG}"
-                        echo "Would scan ${tag} using Trivy Docker..."
+                        echo "Scanning ${tag} using Trivy"
                         sh """
                             docker run --rm \
                               -v /var/run/docker.sock:/var/run/docker.sock \
                               aquasec/trivy image \
-                              --severity ${TRIVY_SEVERITY} \
+                              --severity HIGH,CRITICAL \
                               --exit-code 0 \
                               --no-progress \
                               ${tag}
@@ -77,13 +65,12 @@ pipeline {
                 }
             }
         }
+
         stage('Push to GitHub (Promote to master)') {
-            when {
-                branch 'test'
-            }
+            when { branch 'test' }
             steps {
                 script {
-                    echo " Promoting 'test' to 'master' branch on GitHub"
+                    echo "Push 'test' to 'master' branch on GitHub"
                     withCredentials([usernamePassword(
                         credentialsId: 'githubcred',
                         usernameVariable: 'GIT_USER',
@@ -92,21 +79,16 @@ pipeline {
                         sh '''
                             git config user.email "atttttttttkr@gmail.com"
                             git config user.name "atttttttttkr"
-        
-                            # Make sure you're on the test branch
                             git checkout test
-        
-                            # Push test → master (force)
                             git push https://${GIT_USER}:${GIT_PASS}@github.com/atttttttttkr/cnasassignment.git test:master --force
                         '''
                     }
                 }
             }
         }
+
         stage('Cleanup (optional)') {
-            when {
-                branch 'test'
-            }
+            when { branch 'test' }
             steps {
                 sh """
                     docker rmi ${FULL_IMAGE} || true
@@ -117,11 +99,7 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Pipeline completed successfully"
-        }
-        failure {
-            echo "Pipeline failed"
-        }
+        success { echo "Pipeline completed successfully" }
+        failure { echo "Pipeline failed" }
     }
 }
