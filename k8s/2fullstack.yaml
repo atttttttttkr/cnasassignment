@@ -119,7 +119,7 @@ spec:
       serviceAccountName: php-app-sa
       containers:
       - name: php-app
-        image: jjjxxx201/php-app:latest
+        image: jjjxxx201/php-app:testdemo
         resources:
           requests:
             cpu: "100m"
